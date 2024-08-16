@@ -3,21 +3,6 @@
 
 <br>This E-Commerce application manages a database of <b>Customers</b>, <b>Products</b>, <b>Shopping Carts</b>, and the <b>Orders</b> of Products a Customer can place with their Shopping Cart.
 
-## Live Deployment
-
-A live deployment of this application can be found online at: https://ct-project-12-ecommerce-ci-cd.onrender.com
-
-Additional information about the available endpoints can be found in the application's API documentation here: https://ct-project-12-ecommerce-ci-cd.onrender.com/api/docs/
-
-The endpoints can be tested from the API docs or via another service such as Postman.
-
-<b>* Please note:</b> You must "log in" using the Login endpoint in order to use the application's other endpoints. You can generate a token using this provided login:
-
-- "username": "admin"
-- "password": "password123"
-
-When using the API documentation, you can use your authorization token to "log in" by entering "`Bearer <your token>`" into the bearerAuth value field accessible by pressing "Authorize" at the top right of the page.
-<br><br>
 
 ## Endpoints
 

@@ -25,7 +25,6 @@ def verify(token):
 def handle_error(status_code):
     return {"error": "Invalid Token. Please try again"}, status_code
 
-# ignore token authentication if testing... or using sqlite!
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):

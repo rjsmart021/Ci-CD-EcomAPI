@@ -20,7 +20,7 @@ def create_test_product():
     mock_product.price = float(fake.random_number(digits=2))
     mock_product.stock_quantity = fake.random_number(digits=2)
 
-    # ensure we are getting expected values 🙄
+
     mock_product.__getitem__.side_effect = lambda key: getattr(mock_product, key) 
     return mock_product
 

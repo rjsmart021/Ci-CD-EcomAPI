@@ -56,9 +56,3 @@ def track_order(order_id):
         return jsonify({"error": str(err)}), 404
 
 
-
-# TO-DO: 
-# Manage Order History (Bonus): Create an endpoint that allows customers to access their order history, listing all previous orders placed. Each order entry should provide comprehensive information, including the order date and associated products.
-    # take in customer ID, return list of orders
-# Cancel Order (Bonus): Implement an order cancellation feature, allowing customers to cancel an order if it hasn't been shipped or completed. Ensure that canceled orders are appropriately reflected in the system.
-    # take in order ID, set cancellation of order to false if not shipped or already completed

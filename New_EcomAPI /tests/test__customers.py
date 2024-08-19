@@ -25,7 +25,7 @@ def create_test_customer():
     mock_customer.username = first_name[0] + last_name
     mock_customer.password = fake.password(length=12)
 
-    # ensure we are getting expected string values 🙄
+   
     mock_customer.__getitem__.side_effect = lambda key: getattr(mock_customer, key) 
     return mock_customer
 

@@ -5,7 +5,7 @@ from mysql.connector import Error
 from Marshmallow import Schema, fields, ValidationError 
 from password import my_password
 #------------------------------------------------------------------------------------
-app = Flask(_name_)
+app = Flask(__name__)
 ma = Marshmallow(app)
 
 #Order schema using Marshmallow
@@ -70,23 +70,23 @@ def add_order():
     finally:
         cursor.close()
         conn.close()
-    #-----------------------------------------------------------------------------------------------
-    # Get route for all orders
-    @app.route('/orders', methods=['GET'])
-    def get_orders():
-        conn = get_db_connection()
-        if conn is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        cursor = conn.cursor(dictionary=True)
-        cursor.excecute("SELECT * FROM Orders WHERE id = %s", (order_id,))
-        order = cursor.fetchone()
-        cursor.close()
-        conn.close()
+#-----------------------------------------------------------------------------------------------
+# Get route for all orders
+@app.route('/orders', methods=['GET'])
+def get_orders():
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"error": "Database connection failed"}), 500
+    cursor = conn.cursor(dictionary=True)
+    cursor.excecute("SELECT * FROM Orders WHERE id = %s", (order_id,))
+    order = cursor.fetchone()
+    cursor.close()
+    conn.close()
 
-        if order:
-            return order_schema.jsonify(order)
-        else: 
-            return jsonify({"error": "Order not found"}), 404
+    if order:
+        return order_schema.jsonify(order)
+    else: 
+        return jsonify({"error": "Order not found"}), 404
 #-----------------------------------------------------------------------------------------------------------
 #PUT route with Validation
 @app.route('/orders/<int:order_id>', methods=['PUT'])
@@ -137,4 +137,4 @@ def update_order(order_id):
             conn.close()
 
     if__name__== '__main__':
-    app.run(debug=True)
+    app.run(debug=True):

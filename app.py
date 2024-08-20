@@ -1,135 +1,140 @@
-
 from flask import Flask
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-# from flask_migrate import Migrate
-from flask_swagger_ui import get_swaggerui_blueprint
-from database import db, migrate
-from schemas import ma
-from limiter import limiter
-from caching import cache
+from flask_marshmallow import Marshmallow
+import mysql.connector
+from mysql.connector import Error 
+from Marshmallow import Schema, fields, ValidationError 
+from password import my_password
+#------------------------------------------------------------------------------------
+app = Flask(_name_)
+ma = Marshmallow(app)
 
-from models.customer import Customer
-from models.product import Product
-from models.order import Order
-from models.orderProducts import order_products
-from models.shoppingCart import ShoppingCart
-from models.shoppingCartProducts import shopping_cart_products
+#Order schema using Marshmallow
+class OrderSchema(ma.Schema):
+    id = fields.Int(dump_only=True)
+    customer_id = fields.Int(required=True)
+    date = fields.Date(required=True)
 
-from routes.customerBP import customer_blueprint
-from routes.productBP import product_blueprint
-from routes.orderBP import order_blueprint
-from routes.shoppingCartBP import shopping_cart_blueprint
-from routes.loginBP import login_blueprint
+#Initialize schema
+order_schema = OrderSchema()
+order_schema = OrderSchema(many=True)
+#--------------------------------------------------------------------------------------
+def get_db_connection():
+    """Connect to the MySQL database and return the connection object"""
+# Database connection parameters
+db_name = "e_commerce_db"
+user = "root"
+password = my_password # <== Your own password here
+host = "localhost"
 
-from flask import Flask
-from database import db
-from schemas import ma
-from limiter import limiter
-from caching import cache
+try:
+    # Attempting to establish a connection
+    conn = mysql.connector.connect(
+        database=db_name,
+        user=user,
+        password=password,
+        host=host
+    )
+    # Check if the connection is successful
+    print("Connected to MySQL database successfully")
+    return conn
 
-from models.user import User
+except Error as e:
+    #Handling any connection errors
+    print(f"Error: {e}")
+    return None
 
-from routes.customerBP import customer_blueprint
-from routes.employeeBP import employee_blueprint
-from routes.orderBP import order_blueprint
-from routes.productBP import product_blueprint
-from routes.productionBP import production_blueprint
-from routes.userBP import user_blueprint
-from routes.loginBP import login_blueprint
-
-
-def create_app(config_name):
-    app = Flask(__name__)
-
-    app.config.from_object(f'config.{config_name}')
-
-    db.init_app(app)
-    ma.init_app(app)
-    limiter.init_app(app)
-    cache.init_app(app)
-
-    blueprint_config(app)
-    config_rate_limit()
+#------------------------------------------------------------------------------
+#POST route with Validation
+@app.route('/orders', methods=['POST'])
+def add_order():
+    try:
+        #Validate and desrialize input
+        order_data = order_schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
     
-    return app
-
-def blueprint_config(app):
-    app.register_blueprint(customer_blueprint, url_prefix='/customers')
-    app.register_blueprint(employee_blueprint, url_prefix='/employees')
-    app.register_blueprint(order_blueprint, url_prefix='/orders')
-    app.register_blueprint(product_blueprint, url_prefix='/products')
-    app.register_blueprint(production_blueprint, url_prefix='/productions')
-    app.register_blueprint(user_blueprint, url_prefix='/users')
-    app.register_blueprint(login_blueprint, url_prefix='/login')
-
-def config_rate_limit():
-    limiter.limit("6 per minute")(customer_blueprint)
-    limiter.limit("10 per hour")(employee_blueprint)
-    limiter.limit("1 per second")(order_blueprint)
-    limiter.limit("10 per minute")(product_blueprint)
-    limiter.limit("20 per hour")(production_blueprint)
-
-if __name__ == "__main__":
-    app = create_app('DevelopmentConfig')
-
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"error": "Database connection failed"}), 500
     
+    try:
+        cursor = conn.cursor()
+        query = "INSERT INTO Orders (date, customer_id) VALUES (%s, %s)"
+        cursor.excecute(query, (order_data['date'], order_data['customer_id']))
+        conn.commit()
+        return jsonify({"message": "order added successfully"}, 201)
     
-    # with app.app_context():
-    #     db.drop_all()
-        # db.create_all()
+    except Error as e:
+        return jsonify({"error": str(e)}), 500
+    
+    finally:
+        cursor.close()
+        conn.close()
+    #-----------------------------------------------------------------------------------------------
+    # Get route for all orders
+    @app.route('/orders', methods=['GET'])
+    def get_orders():
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Database connection failed"}), 500
+        cursor = conn.cursor(dictionary=True)
+        cursor.excecute("SELECT * FROM Orders WHERE id = %s", (order_id,))
+        order = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if order:
+            return order_schema.jsonify(order)
+        else: 
+            return jsonify({"error": "Order not found"}), 404
+#-----------------------------------------------------------------------------------------------------------
+#PUT route with Validation
+@app.route('/orders/<int:order_id>', methods=['PUT'])
+def update_order(order_id):
+    try:
+        #validate and deserialize input
+        order_data = order_schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+    
+    conn = get_db_connection()
+    if conn is None:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = conn.cursor()
+        query = "UPDATE Orders SET data = %s, customer_id = %s WHERE id = %s"
+        cursor.execute(query, (order_date['date'], order_data["customer_id"], order_id))
+        conn.commit()
+        return jsonify({"message": "Order updated successfully"}), 200
+    
+    except Error as e:
+        return jsonify({"error": str(e)}), 500
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+#--------------------------------------------------------------------------------------------------------------
+#DELETE route
+@app.route('/orders/int:order_id>', methods=['DELETE'])
+    def delete_order(order_id):
+        conn = get_db_connection()
+        if conn is None:
+            return jsonify({"error": "Fatabase connection failed"}), 500
         
-    app.run(debug=True)
-
-
-SWAGGER_URL = '/api/docs' # URL for exposing Swagger UI
-API_URL = '/static/swagger.yaml' # Pth to the YAML file
-
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config={'app_name': 'CT E-Commerce API'}
-)
-
-def create_app(config_name):
-    app = Flask(__name__)
-
-    app.config.from_object(f'config.{config_name}')
-    app.json.sort_keys = False
-
-    db.init_app(app)
-    ma.init_app(app)
-    limiter.init_app(app)
-    cache.init_app(app)
-    migrate.init_app(app, db)
-    CORS(app)
-
-    blueprint_config(app)
-    config_rate_limit()
-    
-    return app
-
-def blueprint_config(app):
-    app.register_blueprint(customer_blueprint, url_prefix='/customers')
-    app.register_blueprint(product_blueprint, url_prefix='/products')
-    app.register_blueprint(order_blueprint, url_prefix='/orders')
-    app.register_blueprint(shopping_cart_blueprint, url_prefix='/cart')
-    app.register_blueprint(login_blueprint, url_prefix='/login')
-    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
-
-def config_rate_limit():
-    limiter.limit("100 per day")(customer_blueprint)
-    limiter.limit("100 per day")(product_blueprint)
-    limiter.limit("100 per day")(order_blueprint)
-    limiter.limit("100 per day")(shopping_cart_blueprint)
-
-
-
-if __name__ == "__main__":
-    app = create_app('DevelopmentConfig')
-
-    @app.route('/')
-    def index():
-        return "Check out the <a href='/api/docs/'>API documentation</a> to learn about this application's endpoints!"
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM Orders Where id = %s", (order_id,))
+            conn.commit()
+            return jsonify({"message": Order deleted successfully}), 200
         
+        except Error as e:
+            return jsonify({"error": str(e)}), 500
+        
+        finally:
+            cursor.close()
+            conn.close()
+
+    if__name__== '__main__':
     app.run(debug=True)
